@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="test">
+        <p>{{msg}}</p>
+        <p>{{msg}}</p>
+        <p>{{msg}}</p>
+        <p>{{what}}</p>
+        <p>{{hey}}</p>
+    </div>
+    <script>
+        var bindingMark = 'data-element-binding'
+        function Element(id, initData) {
+            var self = this;
+            this.bindings = {}; // inner
+            this.data = {}; // outer
+            this.el = document.getElementById(id);
+            this.str = this.el.innerHTML;
+            this.el.innerHTML = this.content = this.str.replace(/\{\{(.*)\}\}/g, markToken);
+
+            // match {{xxx}} variable xxx
+            function markToken (match, variable) {
+                self.bindings[variable] = {}
+                return '<span '+bindingMark +'="'+ variable +'"></span>'
+            }
+
+
+            
+
+            for (var variable in self.bindings) {
+                bind(variable)
+            }
+            
+            function bind(variable) {
+                self.bindings[variable].els = self.el.querySelectorAll('[' + bindingMark + '="' + variable + '"]');
+                [].forEach.call(self.bindings[variable].els, function (e) {
+                    e.removeAttribute(bindingMark)
+                })
+                Object.defineProperty(self.data, variable, {
+                    set: function (newVal) {
+                        [].forEach.call(self.bindings[variable].els, function (e) {
+                            self.bindings[variable].value = e.textContent = newVal
+                        })
+                    },
+                    get: function () {
+                        return self.bindings[variable].value
+                    }
+                })
+            }
+
+            if (initData) {
+                for (var variable in initData) {
+                    self.data[variable] = initData[variable]
+                }
+            }
+        }
+
+        var app = new Element('test', {
+            msg: 'hello',
+            hey: 'world'
+        })
+        var kk = app.bindings;
+        console.log(kk)
+    </script>
+</body>
+
+</html>

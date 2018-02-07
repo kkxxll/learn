@@ -1,0 +1,29 @@
+{
+  "name": "learn",
+  "version": "1.0.0",
+  "description": "learn js",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkxxll/learn.git"
+  },
+  "author": "kkxxll",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kkxxll/learn/issues"
+  },
+  "homepage": "https://github.com/kkxxll/learn#readme",
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.1",
+    "chai": "^4.1.2",
+    "clean-webpack-plugin": "^0.1.18",
+    "mocha": "^5.0.0",
+    "webpack": "^3.10.0"
+  }
+}

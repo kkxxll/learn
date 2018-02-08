@@ -1,13 +1,14 @@
 var Seed = require('./main')
 var app = Seed.create({
     id: 'test',
-    // template
     scope: {
-        msg: 'hello',
-        hello: 'WHWHWHW',
-        something: true,
+        hello: 'hello',
+        'msg.wow': 'wow',
         changeMessage: function () {
-            app.scope.msg = 'hola'
+            app.scope['msg.wow'] = 'holawow'
+        },
+        remove: function () {
+            app.destroy()
         }
     }
 })

@@ -12,8 +12,9 @@ function Seed(opts) {
     var self = this,
         root = this.el = document.getElementById(opts.id),
         // querySelectorAll 匹配的[xxx]代表包含属性xxx的
-        els = root.querySelectorAll(selector),
-        bindings = {} // internal real data
+        els = root.querySelectorAll(selector)
+
+    var bindings = self._bindings =  {} // internal real data
 
     self.scope = {} // external interface
 
@@ -72,6 +73,8 @@ function Seed(opts) {
     }
 }
 
+
+
 // 绑定指令
 function bindDirective(seed, el, bindings, directive) {
     el.removeAttribute(directive.attr.name)
@@ -94,6 +97,30 @@ function bindDirective(seed, el, bindings, directive) {
     }
 }
 
+
+Seed.prototype.dump = function () {
+    var data = {}
+    for (var key in this._bindings) {
+        data[key] = this._bindings[key].value
+    }
+    return data
+}
+
+Seed.prototype.destroy = function () {
+    for (var key in this._bindings) {
+        this._bindings[key].directives.forEach(function (directive) {
+            if (directive.definition.unbind) {
+                directive.definition.unbind(
+                    directive.el,
+                    directive.argument,
+                    directive
+                )
+            }
+        })
+    }
+    this.el.parentNode.remove(this.el)
+}
+
 // 绑定存取器
 function bindAccessors(seed, key, binding) {
     Object.defineProperty(seed.scope, key, {
@@ -103,12 +130,12 @@ function bindAccessors(seed, key, binding) {
         set: function (value) {
             binding.value = value
             binding.directives.forEach(function (directive) {
-                if (value && directive.filters) {
-                    value = applyFilters(value, directive)
-                }
+                var filteredValue = value && directive.filters
+                ? applyFilters(value, directive)
+                : value
                 directive.update(
                     directive.el,
-                    value,
+                    filteredValue,
                     directive.argument,
                     directive,
                     seed

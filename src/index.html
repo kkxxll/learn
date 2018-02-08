@@ -6,13 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+    <style>
+        .red {
+            color: red;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="test" sd-on-click="changeMessage | .button">
+    <!-- <div id="test" sd-on-click="changeMessage | .button">
         <p sd-class-red="error" sd-text="hello"></p>
         <p sd-text="msg.wow | capitalize" sd-on-click="remove"></p>
         <p sd-text="msg.wow | uppercase" class="button"></p>
+    </div> -->
+    <div id="test" sd-on-click="changeMessage | delegate .button">
+        <p sd-text="msg.wow | capitalize" sd-on-click="remove"></p>
+        <p sd-text="msg.wow | uppercase" class="button"></p>
+        <p sd-class-red="error" sd-text="hello"></p>
+        <div sd-each="todos">
+            <span sd-text="text"></span>
+        </div>
     </div>
 </body>
 

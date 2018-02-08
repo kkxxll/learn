@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
     entry: {
-        main: ['./src/js/main.js', './src/js/directives.js', './src/js/filters.js'],
+        main: ['./src/js/main.js', './src/js/directive.js', './src/js/directives.js', './src/js/filters.js'],
         test: './src/js/test.js'
     },
     output: {

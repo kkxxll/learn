@@ -1,102 +1,82 @@
-var prefix = 'sd',
-    Filters = require('./filters'),
-    Directives = require('./directives'),
-    selector = Object.keys(Directives).map(function (d) {
+var prefix      = 'sd',
+    Directive   = require('./directive'),
+    Directives  = require('./directives'),
+    selector    = Object.keys(Directives).map(function (d) {
         return '[' + prefix + '-' + d + ']'
     }).join()
-// ["[sd-text]", "[sd-show]", "[sd-class]", "[sd-on]"]
-// [sd-text],[sd-show],[sd-class],[sd-on]
 
-function Seed(opts) {
+function Seed (opts) {
 
     var self = this,
         root = this.el = document.getElementById(opts.id),
-        // querySelectorAll 匹配的[xxx]代表包含属性xxx的
-        els = root.querySelectorAll(selector)
+        els  = root.querySelectorAll(selector)
 
-    var bindings = self._bindings =  {} // internal real data
-
-    self.scope = {} // external interface
+    self.bindings = {}
+    self.scope = {}
 
     // process nodes for directives
-    ;
-    [].forEach.call(els, processNode)
-    processNode(root)
+    ;[].forEach.call(els, this.compileNode.bind(this))
+    this.compileNode(root)
 
     // initialize all variables by invoking setters
-    for (var key in bindings) {
+    for (var key in self.bindings) {
         self.scope[key] = opts.scope[key]
     }
 
-    // 处理节点
-    function processNode(el) {
-        cloneAttributes(el.attributes).forEach(function (attr) {
-
-            var directive = parseDirective(attr)
-
-            // {
-            //     argument: null
-            //     attr: {
-            //         name: "sd-text",
-            //         value: "msg | capitalize"
-            //     }
-            //     definition: ƒ text(el, value)
-            //     el: p
-            //     filters: ["capitalize"]
-            //     key: "msg"
-            //     update: ƒ text(el, value)
-            // }
-
-            // {
-            //     argument: "click"
-            //     attr: {
-            //         name: "sd-on-click",
-            //         value: "changeMessage | .button"
-            //     }
-            //     definition: {
-            //         update: ƒ,
-            //         unbind: ƒ,
-            //         customFilter: ƒ
-            //     }
-            //     el: div# test
-            //     filters: [".button"]
-            //     handlers: {
-            //         click: ƒ
-            //     }
-            //     key: "changeMessage"
-            //     update: ƒ update(el, handler, event, directive)
-            // }
-            if (directive) {
-                bindDirective(self, el, bindings, directive)
-            }
-        })
-    }
 }
 
-
-
-// 绑定指令
-function bindDirective(seed, el, bindings, directive) {
-    el.removeAttribute(directive.attr.name)
-    var key = directive.key,
-        binding = bindings[key]
-    if (!binding) {
-        bindings[key] = binding = {
-            value: undefined,
-            directives: []
+Seed.prototype.compileNode = function (node) {
+    var self = this
+    cloneAttributes(node.attributes).forEach(function (attr) {
+        var directive = Directive.parse(attr, prefix)
+        if (directive) {
+            self.bind(node, directive)
         }
-    }
-    directive.el = el
+    })
+}
+
+Seed.prototype.bind = function (node, directive) {
+
+    directive.el = node
+    node.removeAttribute(directive.attr.name)
+
+    var key      = directive.key,
+        binding  = this.bindings[key] || this.createBinding(key)
+
+    // add directive to this binding
     binding.directives.push(directive)
+
     // invoke bind hook if exists
     if (directive.bind) {
-        directive.bind(el, binding.value)
+        directive.bind(node, binding.value)
     }
-    if (!seed.scope.hasOwnProperty(key)) {
-        bindAccessors(seed, key, binding)
-    }
+
 }
 
+Seed.prototype.createBinding = function (key) {
+
+    var binding = {
+        value: undefined,
+        directives: []
+    }
+
+    this.bindings[key] = binding
+
+    // bind accessor triggers to scope
+    Object.defineProperty(this.scope, key, {
+        get: function () {
+            return binding.value
+        },
+        set: function (value) {
+            binding.value = value
+            binding.directives.forEach(function (directive) {
+                directive.update(value)
+            })
+        }
+    })
+
+    return binding
+}
 
 Seed.prototype.dump = function () {
     var data = {}
@@ -108,59 +88,18 @@ Seed.prototype.dump = function () {
 
 Seed.prototype.destroy = function () {
     for (var key in this._bindings) {
-        this._bindings[key].directives.forEach(function (directive) {
-            if (directive.definition.unbind) {
-                directive.definition.unbind(
-                    directive.el,
-                    directive.argument,
-                    directive
-                )
-            }
-        })
+        this._bindings[key].directives.forEach(unbind)
     }
     this.el.parentNode.remove(this.el)
-}
-
-// 绑定存取器
-function bindAccessors(seed, key, binding) {
-    Object.defineProperty(seed.scope, key, {
-        get: function () {
-            return binding.value
-        },
-        set: function (value) {
-            binding.value = value
-            binding.directives.forEach(function (directive) {
-                var filteredValue = value && directive.filters
-                ? applyFilters(value, directive)
-                : value
-                directive.update(
-                    directive.el,
-                    filteredValue,
-                    directive.argument,
-                    directive,
-                    seed
-                )
-            })
+    function unbind (directive) {
+        if (directive.unbind) {
+            directive.unbind()
         }
-    })
-}
-
-// 应用过滤器
-function applyFilters(value, directive) {
-    if (directive.definition.customFilter) {
-        return directive.definition.customFilter(value, directive.filters)
-    } else {
-        directive.filters.forEach(function (filter) {
-            if (Filters[filter]) {
-                value = Filters[filter](value)
-            }
-        })
-        return value
     }
 }
 
 // clone attributes so they don't change
-function cloneAttributes(attributes) {
+function cloneAttributes (attributes) {
     return [].map.call(attributes, function (attr) {
         return {
             name: attr.name,
@@ -169,61 +108,14 @@ function cloneAttributes(attributes) {
     })
 }
 
-
-
-
-
-// 解析指令
-function parseDirective(attr) {
-
-    // {name:"class", value:"button"}
-    // {name: "sd-text", value: "msg"}
-    // {name: "sd-on-click", value: "changeMessage | .button"}
-    if (attr.name.indexOf(prefix) === -1) return
-
-    // parse directive name and argument
-    // {name: "sd-text", value: "msg"}
-    // {name: "sd-on-click", value: "changeMessage | .button"}
-    var noprefix = attr.name.slice(prefix.length + 1), // text on-click
-        argIndex = noprefix.indexOf('-'), // -1 2
-        dirname = argIndex === -1 ?
-        noprefix :
-        noprefix.slice(0, argIndex), // text on
-        def = Directives[dirname],
-        arg = argIndex === -1 ?
-        null :
-        noprefix.slice(argIndex + 1) // null click
-
-    // parse scope variable key and pipe filters
-    var exp = attr.value, // msg   changeMessage | .button
-        pipeIndex = exp.indexOf('|'), // -1 14
-        key = pipeIndex === -1 ?
-        exp.trim() :
-        exp.slice(0, pipeIndex).trim(), // msg changeMessage
-        filters = pipeIndex === -1 ?
-        null :
-        exp.slice(pipeIndex + 1).split('|').map(function (filter) {
-            return filter.trim()
-        }) // null .button
-
-    return def ? {
-            attr: attr,
-            key: key,
-            filters: filters,
-            definition: def,
-            argument: arg,
-            update: typeof def === 'function' ?
-                def : def.update
-        } :
-        null
-}
-
-
-
 module.exports = {
     create: function (opts) {
         return new Seed(opts)
     },
-    filters: Filters,
-    directives: Directives
+    directive: function () {
+        // create dir
+    },
+    filter: function () {
+        // create filter
+    }
 }

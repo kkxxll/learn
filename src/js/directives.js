@@ -9,6 +9,8 @@ module.exports = {
         el.classList[value ? 'add' : 'remove'](classname)
     },
     on: {
+
+        // directive.el, value, directive.argument, directive, seed
         update: function (el, handler, event, directive) {
             if (!directive.handlers) {
                 directive.handlers = {}

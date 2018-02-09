@@ -1,42 +1,68 @@
-module.exports = {
-    text: function (el, value) {
-        el.textContent = value || ''
-    },
-    show: function (el, value) {
-        el.style.display = value ? '' : 'none'
-    },
-    class: function (el, value, classname) {
-        el.classList[value ? 'add' : 'remove'](classname)
-    },
-    on: {
+var config = require('./config'),
+    watchArray = require('./watchArray')
 
-        // directive.el, value, directive.argument, directive, seed
-        update: function (el, handler, event, directive) {
-            if (!directive.handlers) {
-                directive.handlers = {}
+module.exports = {
+
+    text: function (value) {
+        this.el.textContent = value || ''
+    },
+
+    show: function (value) {
+        this.el.style.display = value ? '' : 'none'
+    },
+
+    class: function (value) {
+        this.el.classList[value ? 'add' : 'remove'](this.arg)
+    },
+
+    on: {
+        update: function (handler) {
+            var event = this.arg
+            if (!this.handlers) {
+                this.handlers = {}
             }
-            var handlers = directive.handlers
+            var handlers = this.handlers
             if (handlers[event]) {
-                el.removeEventListener(event, handlers[event])
+                this.el.removeEventListener(event, handlers[event])
             }
             if (handler) {
-                handler = handler.bind(el)
-                el.addEventListener(event, handler)
+                this.el.addEventListener(event, handler)
                 handlers[event] = handler
             }
         },
-        unbind: function (el, event, directive) {
-            if (directive.handlers) {
-                el.removeEventListener(event, directive.handlers[event])
-            }
-        },
-        customFilter: function (handler, selectors) {
-            return function (e) {
-                var match = selectors.every(function (selector) {
-                    return e.target.webkitMatchesSelector(selector)
-                })
-                if (match) handler.apply(this, arguments)
+        unbind: function () {
+            var event = this.arg
+            if (this.handlers) {
+                this.el.removeEventListener(event, this.handlers[event])
             }
         }
+    },
+
+    each: {
+        update: function (collection) {
+            watchArray(collection, this.mutate.bind(this))
+            // for each in array
+            //   - create a Seed element using the el's outerHTML and raw data object
+            //   - replace the raw object with new Seed's scope object
+        },
+        mutate: function (mutation) {
+            console.log(mutation)
+            console.log(this)
+        }
+    }
+
+}
+
+var push = [].push,
+    slice = [].slice
+
+function augmentArray(collection, directive) {
+    collection.push = function (element) {
+        push.call(this, arguments)
+        directive.mutate({
+            event: 'push',
+            elements: slice.call(arguments),
+            collection: collection
+        })
     }
 }

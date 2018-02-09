@@ -1,14 +1,31 @@
 var Seed = require('./main')
-var app = Seed.create({
-    id: 'test',
-    scope: {
-        hello: 'hello',
-        'msg.wow': 'wow',
-        changeMessage: function () {
-            app.scope['msg.wow'] = 'holawow'
-        },
-        remove: function () {
-            app.destroy()
-        }
+
+
+Seed.filter('money', function (value) {
+    return '$' + value.toFixed(2)
+})
+
+// define a seed
+var Todos = Seed.extend({
+    changeMessage: function () {
+        this.scope['msg.wow'] = 'hola'
+    },
+    remove: function () {
+        this.destroy()
     }
+})
+
+var todos = new Todos('#test', {
+    total: 1000,
+    'msg.wow': 'wow',
+    hello: 'hello',
+    todos: [{
+            title: 'make this shit work',
+            done: false
+        },
+        {
+            title: 'make this shit kinda work',
+            done: true
+        }
+    ]
 })

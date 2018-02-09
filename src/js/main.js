@@ -6,6 +6,8 @@ var config = require('./config'),
 
 Seed.config = config
 
+// API
+
 Seed.extend = function (opts) {
     var Spore = function () {
         Seed.apply(this, arguments)

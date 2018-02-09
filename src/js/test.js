@@ -2,30 +2,48 @@ var Seed = require('./main')
 
 
 Seed.filter('money', function (value) {
-    return '$' + value.toFixed(2)
+    return value ?
+        '$' + value.toFixed(2) :
+        ''
 })
 
-// define a seed
-var Todos = Seed.extend({
+Seed.controller('TodoList', {
     changeMessage: function () {
-        this.scope['msg.wow'] = 'hola'
+        this.scope.msg = 'It works!'
     },
     remove: function () {
         this.destroy()
     }
 })
 
-var todos = new Todos('#test', {
-    total: 1000,
-    'msg.wow': 'wow',
-    hello: 'hello',
-    todos: [{
-            title: 'make this shit work',
-            done: false
-        },
-        {
-            title: 'make this shit kinda work',
-            done: true
-        }
-    ]
+Seed.controller('Todo', {
+    toggle: function () {
+        this.scope.done = !scope.done
+    }
 })
+
+var s = Date.now()
+
+var app = Seed.bootstrap({
+    el: '#app',
+    data: {
+        msg: 'hello!',
+        total: 9999,
+        error: true,
+        todos: [{
+                title: 'hello!',
+                done: true
+            },
+            {
+                title: 'hello!!',
+                done: false
+            },
+            {
+                title: 'hello!!!',
+                done: false
+            }
+        ]
+    }
+})
+
+console.log(Date.now() - s + 'ms')

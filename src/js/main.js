@@ -1,17 +1,12 @@
 var config = require('./config'),
     Seed = require('./seed'),
     directives = require('./directives'),
-    filters = require('./filters')
-
-function buildSelector() {
-    config.selector = Object.keys(directives).map(function (directive) {
-        return '[' + config.prefix + '-' + directive + ']'
-    }).join()
-    // [sd-text],[sd-show],[sd-class],[sd-on],[sd-each]
-}
+    filters = require('./filters'),
+    controllers = require('./controllers')
 
 Seed.config = config
-buildSelector()
+
+// API
 
 Seed.extend = function (opts) {
     var Spore = function () {
@@ -31,13 +26,39 @@ Seed.extend = function (opts) {
     return Spore
 }
 
+Seed.controller = function (id, extensions) {
+    if (controllers[id]) {
+        console.warn('controller "' + id + '" was already registered and has been overwritten.')
+    }
+    controllers[id] = extensions
+}
+
+Seed.bootstrap = function (seeds) {
+    if (!Array.isArray(seeds)) seeds = [seeds]
+    var instances = []
+    seeds.forEach(function (seed) {
+        var el = seed.el
+        if (typeof el === 'string') {
+            el = document.querySelector(el)
+        }
+        if (!el) console.warn('invalid element or selector: ' + seed.el)
+        instances.push(new Seed(el, seed.data, seed.options))
+    })
+    return instances.length > 1 ?
+        instances :
+        instances[0]
+}
+
 Seed.directive = function (name, fn) {
     directives[name] = fn
-    buildSelector()
 }
 
 Seed.filter = function (name, fn) {
     filters[name] = fn
 }
+
+// alias for an alternative API
+Seed.evolve = Seed.controller
+Seed.plant = Seed.bootstrap
 
 module.exports = Seed

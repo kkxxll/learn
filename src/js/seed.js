@@ -1,12 +1,19 @@
 var config = require('./config'),
-    Directive = require('./directive'),
-    Directives = require('./directives'),
-    Filters = require('./filters')
+    Directive = require('./directive')
 
 function Seed(el, data) {
 
     if (typeof el === 'string') {
         el = document.querySelector(el)
+        // <div id="test">
+        //     <p>Wow</p>
+        //     <p class="button">WOW</p>
+        //     <p>$1000.00</p>
+        //     <p>hello</p>
+        //     <ul>
+        //         <li></li>
+        //     </ul>
+        // </div>
     }
 
     this.el = el
@@ -15,6 +22,8 @@ function Seed(el, data) {
 
     // process nodes for directives
     var els = el.querySelectorAll(config.selector);
+    // [sd-text],[sd-show],[sd-class],[sd-on],[sd-each]
+
     [].forEach.call(els, this._compileNode.bind(this))
     this._compileNode(el)
 
@@ -28,7 +37,22 @@ function Seed(el, data) {
 Seed.prototype._compileNode = function (node) {
     var self = this
     cloneAttributes(node.attributes).forEach(function (attr) {
+        // console.log(attr)
+        // {name: "sd-text", value: "msg.wow | capitalize"}
+        // {name: "class", value: "button"}
         var directive = Directive.parse(attr)
+        // console.log(directive)
+        // arg: null
+        // attr: {name: "sd-text", value: "msg.wow | capitalize"}
+        // el: p
+        // filters: [{name: "capitalize", args: null, apply: f}]
+        // key: "msg.wow"
+        // _update: fn
+
+        // null
+
+        
+        // console.log(self._bindings)
         if (directive) {
             self._bind(node, directive)
         }
@@ -48,12 +72,16 @@ Seed.prototype._bind = function (node, directive) {
 
     // invoke bind hook if exists
     if (directive.bind) {
+        // 目前没用
         directive.bind(node, binding.value)
     }
 
 }
 
 Seed.prototype._createBinding = function (key) {
+    // console.log(key)
+    // msg.wow
+    // remove
 
     var binding = {
         value: undefined,
@@ -65,12 +93,14 @@ Seed.prototype._createBinding = function (key) {
     // bind accessor triggers to scope
     Object.defineProperty(this.scope, key, {
         get: function () {
+            // 这里binding 也可以改成self._bindings[key] 更好理解，因为它们其实是同一个引用
             return binding.value
         },
         set: function (value) {
             binding.value = value
             binding.directives.forEach(function (directive) {
                 directive.update(value)
+                // 调用原型上的update方法
             })
         }
     })

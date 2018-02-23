@@ -12,7 +12,6 @@ module.exports = {
     delegate: function (handler, args) {
         var selector = args[0]
         return function (e) {
-            // console.log('triggered')
             if (delegateCheck(e.target, e.currentTarget, selector)) {
                 handler.apply(this, arguments)
             }

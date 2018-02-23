@@ -7,6 +7,7 @@ function buildSelector() {
     config.selector = Object.keys(directives).map(function (directive) {
         return '[' + config.prefix + '-' + directive + ']'
     }).join()
+    // [sd-text],[sd-show],[sd-class],[sd-on],[sd-each]
 }
 
 Seed.config = config

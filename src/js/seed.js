@@ -1,10 +1,19 @@
 var config = require('./config'),
+    controllers = require('./controllers'),
     bindingParser = require('./binding')
 
 var map = Array.prototype.map,
     each = Array.prototype.forEach
 
+// lazy init
+var ctrlAttr,
+    eachAttr
+
 function Seed(el, data, options) {
+
+    // refresh
+    ctrlAttr = config.prefix + '-controller'
+    eachAttr = config.prefix + '-each'
 
     if (typeof el === 'string') {
         el = document.querySelector(el)
@@ -15,51 +24,96 @@ function Seed(el, data, options) {
     this._bindings = {}
     this._options = options || {}
 
-    var key, dataCopy = {}
+    var key
+    // keep a temporary copy for all the real data
+    // so we can overwrite the passed in data object
+    // with getter/setters.
+    this._dataCopy = {}
     for (key in data) {
-        dataCopy[key] = data[key]
+        this._dataCopy[key] = data[key]
+    }
+
+    // if has controller
+    var ctrlID = el.getAttribute(ctrlAttr),
+        controller = null
+    if (ctrlID) {
+        controller = controllers[ctrlID]
+        el.removeAttribute(ctrlAttr)
+        if (!controller) throw new Error('controller ' + ctrlID + ' is not defined.')
     }
 
     // process nodes for directives
-    this._compileNode(el)
+    // first, child with sd-each directive
+
+    this._compileNode(el, true)
 
     // initialize all variables by invoking setters
-    for (key in this._bindings) {
-        this.scope[key] = dataCopy[key]
+    for (key in this._dataCopy) {
+        this.scope[key] = this._dataCopy[key]
     }
+    delete this._dataCopy
 
+    // copy in methods from controller
+    if (controller) {
+        controller.call(null, this.scope, this)
+    }
 }
 
-Seed.prototype._compileNode = function (node) {
-    var self = this,
-        ctrl = config.prefix + '-controller'
+Seed.prototype._compileNode = function (node, root) {
+    var self = this
 
-    if (node.nodeType === 3) {
-        // text node
+    if (node.nodeType === 3) { // text node
+
         self._compileTextNode(node)
+
     } else if (node.attributes && node.attributes.length) {
-        // clone attributes because the list can change
-        var attrs = map.call(node.attributes, function (attr) {
-            return {
-                name: attr.name,
-                expressions: attr.value.split(',')
+
+        var eachExp = node.getAttribute(eachAttr),
+            ctrlExp = node.getAttribute(ctrlAttr)
+
+        if (eachExp) { // each block
+
+            var binding = bindingParser.parse(eachAttr, eachExp)
+            if (binding) {
+                self._bind(node, binding)
+                // need to set each block now so it can inherit
+                // parent scope. i.e. the childSeeds must have been
+                // initiated when parent scope setters are invoked
+                self.scope[binding.key] = self._dataCopy[binding.key]
+                delete self._dataCopy[binding.key]
             }
-        })
-        attrs.forEach(function (attr) {
-            if (attr.name === ctrl) return
-            attr.expressions.forEach(function (exp) {
-                var binding = bindingParser.parse(attr.name, exp)
-                if (binding) {
-                    self._bind(node, binding)
+
+        } else if (ctrlExp && !root) { // nested controllers
+
+            // TODO need to be clever here!
+
+        } else { // normal node (non-controller)
+
+            if (node.childNodes.length) {
+                each.call(node.childNodes, function (child) {
+                    self._compileNode(child)
+                })
+            }
+
+            // clone attributes because the list can change
+            var attrs = map.call(node.attributes, function (attr) {
+                return {
+                    name: attr.name,
+                    expressions: attr.value.split(',')
                 }
             })
-        })
-    }
-
-    if (!node['sd-block'] && node.childNodes.length) {
-        each.call(node.childNodes, function (child) {
-            self._compileNode(child)
-        })
+            attrs.forEach(function (attr) {
+                var valid = false
+                attr.expressions.forEach(function (exp) {
+                    var binding = bindingParser.parse(attr.name, exp)
+                    if (binding) {
+                        valid = true
+                        self._bind(node, binding)
+                    }
+                })
+                if (valid) node.removeAttribute(attr.name)
+            })
+        }
     }
 }
 
@@ -72,19 +126,18 @@ Seed.prototype._bind = function (node, bindingInstance) {
     bindingInstance.seed = this
     bindingInstance.el = node
 
-    node.removeAttribute(config.prefix + '-' + bindingInstance.directiveName)
-
     var key = bindingInstance.key,
-        scope = this.scope,
         epr = this._options.eachPrefixRE,
-        isEach = epr && epr.test(key)
+        isEachKey = epr && epr.test(key),
+        scopeOwner = this
     // TODO make scope chain work on nested controllers
-    if (isEach) {
+    if (isEachKey) {
         key = key.replace(epr, '')
-        scope = this._options.parentScope
+    } else if (epr) {
+        scopeOwner = this._options.parentSeed
     }
 
-    var binding = this._bindings[key] || this._createBinding(key, scope)
+    var binding = scopeOwner._bindings[key] || scopeOwner._createBinding(key)
 
     // add directive to this binding
     binding.instances.push(bindingInstance)
@@ -96,7 +149,7 @@ Seed.prototype._bind = function (node, bindingInstance) {
 
 }
 
-Seed.prototype._createBinding = function (key, scope) {
+Seed.prototype._createBinding = function (key) {
 
     var binding = {
         value: null,
@@ -106,7 +159,7 @@ Seed.prototype._createBinding = function (key, scope) {
     this._bindings[key] = binding
 
     // bind accessor triggers to scope
-    Object.defineProperty(scope, key, {
+    Object.defineProperty(this.scope, key, {
         get: function () {
             return binding.value
         },

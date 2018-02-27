@@ -16,8 +16,9 @@ var data = {
 var Seed = require('./main')
 
 
-Seed.plant('TodoList', function (scope, seed) {
+Seed.controller('TodoList', function (scope, seed) {
 
+    scope.filter = 'all'
     scope.remaining = scope.todos.reduce(function (count, todo) {
         return count + (todo.done ? 0 : 1)
     }, 0)
@@ -43,17 +44,12 @@ Seed.plant('TodoList', function (scope, seed) {
         scope.remaining += e.seed.scope.done ? -1 : 1
     }
 
-    scope.filter = function (e) {
-        var filter = e.el.className
-        seed.el.className = filter
+    scope.setFilter = function (e) {
+        scope.filter = e.el.className
     }
 })
 
-var now = Date.now()
-
-var app = Seed.sprout({
+var app = Seed.bootstrap({
     el: '#app',
     data: data
 })
-
-console.log(Date.now() - now)

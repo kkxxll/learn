@@ -38,7 +38,7 @@
 </head>
 
 <body>
-    <div id="app" class="all" sd-controller="TodoList">
+    <div id="app" sd-class="filter" sd-controller="TodoList">
         <div>
             <input placeholder="What needs to be done?" sd-on="change:addTodo">
         </div>
@@ -53,11 +53,13 @@
             Remaining:
             <span sd-text="remaining"></span>
             <br>
-            <a class="all" sd-on="click:filter">Show All</a> |
-            <a class="remaining" sd-on="click:filter">Show Remaining</a> |
-            <a class="completed" sd-on="click:filter">Show Completed</a>
+            <a class="all" sd-on="click:setFilter">Show All</a> |
+            <a class="remaining" sd-on="click:setFilter">Show Remaining</a> |
+            <a class="completed" sd-on="click:setFilter">Show Completed</a>
         </div>
     </div>
 </body>
 
 </html>
+
+<!-- ==============================================Commits on Aug 4, 2013 todo demo kinda works ============ -->

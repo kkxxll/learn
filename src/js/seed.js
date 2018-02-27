@@ -112,7 +112,7 @@ Seed.prototype._compileNode = function (node, root) {
 
         if (!eachExp && !ctrlExp) {
             if (node.childNodes.length) {
-                slice.call(node.childNodes).forEach(function (child, i) {
+                slice.call(node.childNodes).forEach(function (child) {
                     self._compileNode(child)
                 })
             }

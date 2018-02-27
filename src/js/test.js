@@ -38,6 +38,7 @@ Seed.controller('TodoList', function (scope, seed) {
     scope.removeTodo = function (e) {
         var i = e.seed.eachIndex
         scope.todos.splice(i, 1)
+        scope.remaining -= e.seed.scope.done ? 0 : 1
     }
 
     scope.toggleTodo = function (e) {

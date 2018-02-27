@@ -23,7 +23,7 @@ Seed.controller('Todos', function (scope, seed) {
     // regular properties
     scope.todos = todos
     scope.filter = 'all'
-    scope.remaining = scope.todos.reduce(function (count, todo) {
+    scope.remaining = todos.reduce(function (count, todo) {
         return count + (todo.done ? 0 : 1)
     }, 0)
 
@@ -64,4 +64,4 @@ Seed.controller('Todos', function (scope, seed) {
 
 })
 
-Seed.bootstrap()
+var app = Seed.bootstrap()

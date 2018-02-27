@@ -2,20 +2,13 @@ var Emitter = require('./emitter'),
     config = require('./config'),
     DirectiveParser = require('./directive-parser')
 
-var slice = Array.prototype.slice
-
-var ancestorKeyRE = /\^/g,
-    rootKeyRE = /^\$/
-
-// lazy init
-var ctrlAttr,
-    eachAttr
+var slice = Array.prototype.slice,
+    ancestorKeyRE = /\^/g,
+    rootKeyRE = /^\$/,
+    ctrlAttr = config.prefix + '-controller',
+    eachAttr = config.prefix + '-each'
 
 function Seed(el, options) {
-
-    // refresh
-    ctrlAttr = config.prefix + '-controller'
-    eachAttr = config.prefix + '-each'
 
     if (typeof el === 'string') {
         el = document.querySelector(el)
@@ -24,30 +17,21 @@ function Seed(el, options) {
     el.seed = this
     this.el = el
     this._bindings = {}
-    this.components = {}
 
+    // copy options
     if (options) {
         for (var op in options) {
             this[op] = options[op]
         }
     }
 
-    // initiate the scope
+    // initialize the scope object
     var dataPrefix = config.prefix + '-data'
     this.scope =
         (options && options.data) ||
         config.datum[el.getAttribute(dataPrefix)] ||
         {}
     el.removeAttribute(dataPrefix)
-
-    // keep a temporary copy for all the real data
-    // so we can overwrite the passed in data object
-    // with getter/setters.
-    var key
-    this._dataCopy = {}
-    for (key in this.scope) {
-        this._dataCopy[key] = this.scope[key]
-    }
 
     // if has controller
     var ctrlID = el.getAttribute(ctrlAttr),
@@ -58,24 +42,14 @@ function Seed(el, options) {
         el.removeAttribute(ctrlAttr)
     }
 
-    // process nodes for directives
-    // first, child with sd-each directive
-
+    // revursively process nodes for directives
     this._compileNode(el, true)
-
-    // initialize all variables by invoking setters
-    for (key in this._dataCopy) {
-        this.scope[key] = this._dataCopy[key]
-    }
-    delete this._dataCopy
 
     // copy in methods from controller
     if (controller) {
         controller.call(this, this.scope, this)
     }
 }
-
-Emitter(Seed.prototype)
 
 Seed.prototype._compileNode = function (node, root) {
     var self = this
@@ -94,11 +68,6 @@ Seed.prototype._compileNode = function (node, root) {
             var binding = DirectiveParser.parse(eachAttr, eachExp)
             if (binding) {
                 self._bind(node, binding)
-                // need to set each block now so it can inherit
-                // parent scope. i.e. the childSeeds must have been
-                // initiated when parent scope setters are invoked
-                self.scope[binding.key] = self._dataCopy[binding.key];
-                delete self._dataCopy[binding.key]
             }
 
         } else if (ctrlExp && !root) { // nested controllers
@@ -111,7 +80,7 @@ Seed.prototype._compileNode = function (node, root) {
                 self['$' + id] = seed
             }
 
-        } else if (node.attributes && node.attributes.length) { // normal node (non-controller)
+        } else if (node.attributes && node.attributes.length) { // normal node
 
             slice.call(node.attributes).forEach(function (attr) {
                 var valid = false
@@ -126,6 +95,7 @@ Seed.prototype._compileNode = function (node, root) {
             })
         }
 
+        // recursively parse child nodes
         if (!eachExp && !ctrlExp) {
             if (node.childNodes.length) {
                 slice.call(node.childNodes).forEach(function (child) {
@@ -186,12 +156,17 @@ Seed.prototype._bind = function (node, directive) {
         directive.bind(binding.value)
     }
 
+    // set initial value
+    if (binding.value) {
+        directive.update(binding.value)
+    }
+
 }
 
 Seed.prototype._createBinding = function (key) {
 
     var binding = {
-        value: null,
+        value: this.scope[key],
         instances: []
     }
 
@@ -213,18 +188,28 @@ Seed.prototype._createBinding = function (key) {
     return binding
 }
 
-Seed.prototype.destroy = function () {
-    for (var key in this._bindings) {
-        this._bindings[key].instances.forEach(unbind);
-        delete this._bindings[key]
-    }
-    this.el.parentNode.removeChild(this.el)
-
-    function unbind(instance) {
+Seed.prototype.unbind = function () {
+    var unbind = function (instance) {
         if (instance.unbind) {
             instance.unbind()
         }
     }
+    for (var key in this._bindings) {
+        this._bindings[key].instances.forEach(unbind)
+    }
+    this.childSeeds.forEach(function (child) {
+        child.unbind()
+    })
 }
+
+Seed.prototype.destroy = function () {
+    this.unbind()
+    this.el.parentNode.removeChild(this.el)
+    if (this.parentSeed && this.id) {
+        delete this.parentSeed['$' + this.id]
+    }
+}
+
+Emitter(Seed.prototype)
 
 module.exports = Seed

@@ -1,28 +1,42 @@
-var data = {
-    todos: [{
-            text: '1!',
-            done: false
-        },
-        {
-            text: '2!',
-            done: false
-        },
-        {
-            text: '3!',
-            done: true
-        }
-    ]
-}
 var Seed = require('./main')
 
+var todos = [{
+        text: 'make nesting controllers work',
+        done: true
+    },
+    {
+        text: 'complete ArrayWatcher',
+        done: false
+    },
+    {
+        text: 'computed properties',
+        done: false
+    },
+    {
+        text: 'parse textnodes',
+        done: false
+    }
+]
 
-Seed.controller('TodoList', function (scope, seed) {
+Seed.controller('Todos', function (scope, seed) {
 
+    // regular properties
+    scope.todos = todos
     scope.filter = 'all'
     scope.remaining = scope.todos.reduce(function (count, todo) {
         return count + (todo.done ? 0 : 1)
     }, 0)
 
+    // computed properties
+    scope.total = function () {
+        return scope.todos.length
+    }
+
+    scope.completed = function () {
+        return scope.todos.length - scope.remaining
+    }
+
+    // event handlers
     scope.addTodo = function (e) {
         var text = e.el.value
         if (text) {
@@ -36,8 +50,7 @@ Seed.controller('TodoList', function (scope, seed) {
     }
 
     scope.removeTodo = function (e) {
-        var i = e.seed.eachIndex
-        scope.todos.splice(i, 1)
+        scope.todos.splice(e.seed.index, 1)
         scope.remaining -= e.seed.scope.done ? 0 : 1
     }
 
@@ -48,9 +61,7 @@ Seed.controller('TodoList', function (scope, seed) {
     scope.setFilter = function (e) {
         scope.filter = e.el.className
     }
+
 })
 
-var app = Seed.bootstrap({
-    el: '#app',
-    data: data
-})
+Seed.bootstrap()

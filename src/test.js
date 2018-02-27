@@ -23,8 +23,8 @@ Seed.controller('Todos', function (scope) {
     // regular properties
     scope.todos = todos
     scope.filter = 'all'
-    scope.remaining = todos.reduce(function (count, todo) {
-        return count + (todo.done ? 0 : 1)
+    scope.completed = todos.reduce(function (count, todo) {
+        return count + (todo.done ? 1 : 0)
     }, 0)
 
     // computed properties
@@ -32,8 +32,8 @@ Seed.controller('Todos', function (scope) {
         return scope.todos.length
     }
 
-    scope.completed = function () {
-        return scope.todos.length - scope.remaining
+    scope.remaining = function () {
+        return scope.todos.length - scope.completed
     }
 
     // event handlers
@@ -45,21 +45,26 @@ Seed.controller('Todos', function (scope) {
                 text: val,
                 done: false
             })
-            scope.remaining++
         }
     }
 
     scope.removeTodo = function (e) {
-        scope.todos.splice(e.scope.$index, 1)
-        scope.remaining -= e.scope.done ? 0 : 1
+        scope.todos.remove(e.scope)
+        scope.completed -= e.scope.done ? 1 : 0
     }
 
     scope.toggleTodo = function (e) {
-        scope.remaining += e.scope.done ? -1 : 1
+        scope.completed += e.scope.done ? 1 : -1
     }
 
     scope.setFilter = function (e) {
         scope.filter = e.el.className
+    }
+
+    scope.removeCompleted = function () {
+        scope.todos = scope.todos.filter(function (todo) {
+            return !todo.done
+        })
     }
 
 })

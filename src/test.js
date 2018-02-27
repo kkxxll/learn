@@ -18,7 +18,7 @@ var todos = [{
     }
 ]
 
-Seed.controller('Todos', function (scope, seed) {
+Seed.controller('Todos', function (scope) {
 
     // regular properties
     scope.todos = todos
@@ -38,11 +38,11 @@ Seed.controller('Todos', function (scope, seed) {
 
     // event handlers
     scope.addTodo = function (e) {
-        var text = e.el.value
-        if (text) {
+        var val = e.el.value
+        if (val) {
             e.el.value = ''
-            scope.todos.push({
-                text: text,
+            scope.todos.unshift({
+                text: val,
                 done: false
             })
             scope.remaining++

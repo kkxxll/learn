@@ -4,9 +4,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
     entry: {
-        main: './src/js/main.js',
-        test: './src/js/test.js',
-        nested: './src/js/nested.js'
+        main: './src/main.js',
+        test: './src/test.js',
+        nested: './src/nested.js'
     },
     output: {
         filename: '[name].bundle.js',
